@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1>My Result</h1>
+    {% if published %}
+    <button onclick="window.print()" class="btn btn-secondary no-print">Download / Print</button>
+    {% endif %}
+</div>
+
+{% if not published %}
+<div class="card" style="text-align: center; padding: 4rem 2rem;">
+    <h2 style="color: var(--text-muted);">Results Not Published Yet</h2>
+    <p>Please check back later. The admin has not released the results.</p>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Academic Performance</h3>
+        <span class="badge {% if final_status == 'pass' %}badge-pass{% else %}badge-fail{% endif %}"
+            style="font-size: 1rem;">
+            Result: {{ final_status|upper }}
+        </span>
+    </div>
+
+    <div style="margin-bottom: 2rem;">
+        <p><strong>Student Name:</strong> {{ session['user']['name'] }}</p>
+        <p><strong>Student ID:</strong> {{ session['user']['username'] }}</p>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Marks Obtained</th>
+                    <th>Max Marks</th>
+                    <th>Grade</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in report_card %}
+                <tr>
+                    <td>{{ row.subject }}</td>
+                    <td>{{ row.score }}</td>
+                    <td>100</td>
+                    <td>{{ row.grade }}</td>
+                    <td>
+                        <span class="badge {% if row.status == 'pass' %}badge-pass{% else %}badge-fail{% endif %}">
+                            {{ row.status|upper }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: bold; background-color: #f9f9f9;">
+                    <td>TOTAL</td>
+                    <td>{{ total_marks }}</td>
+                    <td>{{ max_marks }}</td>
+                    <td>{{ final_grade }}</td>
+                    <td>{{ percentage }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

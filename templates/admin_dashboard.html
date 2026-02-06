@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Admin Dashboard</h1>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.teachers }}</div>
+        <div class="stat-label">Teachers</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.students }}</div>
+        <div class="stat-label">Students</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.subjects }}</div>
+        <div class="stat-label">Subjects</div>
+    </div>
+    <div class="stat-card"
+        style="border-top-color: {% if config.results_published %}var(--success-color){% else %}var(--error-color){% endif %};">
+        <div class="stat-number" style="font-size: 1.5rem; margin-top: 10px;">
+            {% if config.results_published %}PUBLISHED{% else %}HIDDEN{% endif %}
+        </div>
+        <div class="stat-label">Result Status</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+
+    <!-- Management Actions -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Manage System</h3>
+        </div>
+        <p style="margin-bottom: 1rem;">Control result visibility for students.</p>
+        <a href="{{ url_for('toggle_results') }}" class="btn {% if config.results_published %}btn-danger{% endif %}">
+            {% if config.results_published %}Unpublish Results{% else %}Publish Results{% endif %}
+        </a>
+    </div>
+
+    <!-- Quick Add Subject -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Add Subject</h3>
+        </div>
+        <form action="{{ url_for('add_subject') }}" method="POST">
+            <div class="form-group">
+                <input type="text" name="name" placeholder="Subject Name" required>
+            </div>
+            <div class="form-group">
+                <select name="teacher_id" required>
+                    <option value="" disabled selected>Assign Teacher</option>
+                    {% for u in users.values() %}
+                    {% if u.role == 'teacher' %}
+                    <option value="{{ u.username }}">{{ u.name }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn">Create Subject</button>
+        </form>
+    </div>
+</div>
+
+<!-- Add User Form -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Add New User</h3>
+    </div>
+    <form action="{{ url_for('add_user') }}" method="POST"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Name</label>
+            <input type="text" name="name" placeholder="Full Name" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="Username" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Password</label>
+            <input type="text" name="password" placeholder="Password" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Role</label>
+            <select name="role" required>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+            </select>
+        </div>
+        <button type="submit" class="btn">Add User</button>
+    </form>
+</div>
+
+<!-- All Results Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">All Student Results</h3>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Subject</th>
+                    <th>Marks</th>
+                    <th>Grade</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in all_results %}
+                <tr>
+                    <td>{{ r.student }}</td>
+                    <td>{{ r.subject }}</td>
+                    <td>{{ r.marks }}</td>
+                    <td>{{ r.grade }}</td>
+                    <td>
+                        <span class="badge {% if r.status == 'pass' %}badge-pass{% else %}badge-fail{% endif %}">
+                            {{ r.status|upper }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted);">No marks entered yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
