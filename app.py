@@ -1,63 +1,132 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from functools import wraps
 import uuid
+import os
+import csv
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_dev_key_change_me_in_prod'  # Required for sessions
+app.secret_key = 'super_secret_dev_key_change_me_in_prod'
 
 # -------------------------------------------------------------------
-#  IN-MEMORY DATA STRUCTURES (DATABASE REPLACEMENTS)
+#  DATA PERSISTENCE (CSV)
 # -------------------------------------------------------------------
 
-# USERS: username -> { 'id': str, 'password': str, 'role': str, 'name': str }
-USERS = {}
-
-# SUBJECTS: id -> { 'id': str, 'name': str, 'teacher_id': str (username) }
-SUBJECTS = {}
-
-# MARKS: student_username -> { subject_id: int }
-MARKS = {}
-
-# GLOBAL SETTINGS
-CONFIG = {
-    'results_published': False
+DATA_DIR = 'data'
+FILES = {
+    'users': os.path.join(DATA_DIR, 'users.csv'),
+    'subjects': os.path.join(DATA_DIR, 'subjects.csv'),
+    'marks': os.path.join(DATA_DIR, 'marks.csv'),
+    'config': os.path.join(DATA_DIR, 'config.csv')
 }
+
+# Global Runtime Store (Loaded from CSV)
+USERS = {}
+SUBJECTS = {}
+MARKS = {}
+CONFIG = {'results_published': False}
+
+def init_db():
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    
+    # Initialize files with headers if they don't exist
+    if not os.path.exists(FILES['users']):
+        with open(FILES['users'], 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['username', 'password', 'role', 'name'])
+            # Default Admin
+            writer.writerow(['admin', '123', 'admin', 'System Administrator'])
+
+    if not os.path.exists(FILES['subjects']):
+        with open(FILES['subjects'], 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['id', 'name', 'teacher_id'])
+
+    if not os.path.exists(FILES['marks']):
+        with open(FILES['marks'], 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['student_username', 'subject_id', 'marks'])
+
+    if not os.path.exists(FILES['config']):
+        with open(FILES['config'], 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['key', 'value'])
+            writer.writerow(['results_published', 'False'])
+
+def load_data():
+    global USERS, SUBJECTS, MARKS, CONFIG
+    USERS = {}
+    SUBJECTS = {}
+    MARKS = {}
+
+    # Load Users
+    if os.path.exists(FILES['users']):
+        with open(FILES['users'], 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                USERS[row['username']] = row
+
+    # Load Subjects
+    if os.path.exists(FILES['subjects']):
+        with open(FILES['subjects'], 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                SUBJECTS[row['id']] = row
+
+    # Load Marks
+    if os.path.exists(FILES['marks']):
+        with open(FILES['marks'], 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                stu = row['student_username']
+                sub = row['subject_id']
+                score = int(row['marks'])
+                if stu not in MARKS: MARKS[stu] = {}
+                MARKS[stu][sub] = score
+
+    # Load Config
+    if os.path.exists(FILES['config']):
+        with open(FILES['config'], 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row['key'] == 'results_published':
+                    CONFIG['results_published'] = (row['value'] == 'True')
+
+def save_users():
+    with open(FILES['users'], 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['username', 'password', 'role', 'name'])
+        for u in USERS.values():
+            writer.writerow([u['username'], u['password'], u['role'], u['name']])
+
+def save_subjects():
+    with open(FILES['subjects'], 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['id', 'name', 'teacher_id'])
+        for s in SUBJECTS.values():
+            writer.writerow([s['id'], s['name'], s['teacher_id']])
+
+def save_marks():
+    with open(FILES['marks'], 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['student_username', 'subject_id', 'marks'])
+        for stu_user, subjects in MARKS.items():
+            for sub_id, score in subjects.items():
+                writer.writerow([stu_user, sub_id, score])
+
+def save_config():
+    with open(FILES['config'], 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['key', 'value'])
+        writer.writerow(['results_published', str(CONFIG['results_published'])])
+
+# Initialize and Load
+init_db()
+load_data()
 
 # -------------------------------------------------------------------
 #  HELPER FUNCTIONS & DECORATORS
 # -------------------------------------------------------------------
-
-def populate_dummy_data():
-    """Initializes the system with some default data for testing."""
-    # Create Admin
-    USERS['admin'] = {'id': 'admin', 'username': 'admin', 'password': '123', 'role': 'admin', 'name': 'System Administrator'}
-    
-    # Create Teachers
-    USERS['t1'] = {'id': 't1', 'username': 't1', 'password': '123', 'role': 'teacher', 'name': 'Alice Teacher'}
-    USERS['t2'] = {'id': 't2', 'username': 't2', 'password': '123', 'role': 'teacher', 'name': 'Bob Teacher'}
-    
-    # Create Students
-    USERS['s1'] = {'id': 's1', 'username': 's1', 'password': '123', 'role': 'student', 'name': 'John Student'}
-    USERS['s2'] = {'id': 's2', 'username': 's2', 'password': '123', 'role': 'student', 'name': 'Jane Student'}
-    
-    # Create Subjects
-    sub1_id = str(uuid.uuid4())[:8]
-    SUBJECTS[sub1_id] = {'id': sub1_id, 'name': 'Mathematics', 'teacher_id': 't1'}
-    
-    sub2_id = str(uuid.uuid4())[:8]
-    SUBJECTS[sub2_id] = {'id': sub2_id, 'name': 'Science', 'teacher_id': 't2'}
-
-    # Initial Marks (for demo)
-    # Student 1 Math
-    MARKS['s1'] = {} 
-    
-    print("--- Dummy Data Loaded ---")
-    print("Admin:   admin / 123")
-    print("Teacher: t1 / 123")
-    print("Student: s1 / 123")
-
-# Run population once on import
-populate_dummy_data()
 
 def login_required(f):
     @wraps(f)
@@ -74,7 +143,7 @@ def role_required(required_role):
         def decorated_function(*args, **kwargs):
             if 'user' not in session or session['user'].get('role') != required_role:
                 flash("Unauthorized access.", "error")
-                return redirect(url_for('dashboard', role=session.get('user', {}).get('role')))
+                return redirect(url_for('dashboard'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -94,17 +163,22 @@ def get_grade(marks):
 def home():
     if 'user' in session:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return render_template('landing.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
+        role = request.form.get('role') # Passed from hidden field in tabs
+
         user = USERS.get(username)
         
         if user and user['password'] == password:
+            if role and user['role'] != role:
+                flash(f"Invalid role. Please login as {user['role']}.", "error")
+                return redirect(url_for('login'))
+            
             session['user'] = user
             flash(f"Welcome back, {user['name']}!", "success")
             return redirect(url_for('dashboard'))
@@ -112,6 +186,30 @@ def login():
             flash("Invalid username or password.", "error")
             
     return render_template('login.html')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role', 'student') # Default to student if not specified
+
+        if username in USERS:
+            flash("Username already taken.", "error")
+        else:
+            new_user = {
+                'username': username,
+                'password': password,
+                'role': role,
+                'name': name
+            }
+            USERS[username] = new_user
+            save_users() # Persist
+            flash("Account created! Please login.", "success")
+            return redirect(url_for('login'))
+
+    return render_template('signup.html')
 
 @app.route('/logout')
 def logout():
@@ -137,13 +235,11 @@ def dashboard():
 @login_required
 @role_required('admin')
 def admin_dashboard():
-    # Gather stats
     teacher_count = len([u for u in USERS.values() if u['role'] == 'teacher'])
     student_count = len([u for u in USERS.values() if u['role'] == 'student'])
     subject_count = len(SUBJECTS)
     
     all_results = []
-    # Compile a big list of results for Admin view
     for s_username, s_marks in MARKS.items():
         stu = USERS.get(s_username)
         if not stu: continue
@@ -181,6 +277,7 @@ def add_subject():
             'name': name,
             'teacher_id': teacher_username
         }
+        save_subjects()
         flash(f"Subject '{name}' created successfully.", "success")
     else:
         flash("Missing info for creating subject.", "error")
@@ -199,12 +296,12 @@ def add_user():
         flash("Username already exists.", "error")
     elif username and password and role in ['student', 'teacher']:
         USERS[username] = {
-            'id': username, # using username as ID for simplicity
             'username': username,
             'password': password,
             'role': role,
             'name': name
         }
+        save_users()
         flash(f"User '{username}' created successfully.", "success")
     else:
         flash("Invalid user data.", "error")
@@ -215,6 +312,7 @@ def add_user():
 @role_required('admin')
 def toggle_results():
     CONFIG['results_published'] = not CONFIG['results_published']
+    save_config()
     status = "PUBLISHED" if CONFIG['results_published'] else "UNPUBLISHED"
     flash(f"Results are now {status}.", "info")
     return redirect(url_for('admin_dashboard'))
@@ -226,11 +324,7 @@ def toggle_results():
 @role_required('teacher')
 def teacher_dashboard():
     my_username = session['user']['username']
-    
-    # Get subjects assigned to this teacher
     my_subjects = [s for s in SUBJECTS.values() if s['teacher_id'] == my_username]
-    
-    # Get list of ALL students for dropdowns
     all_students = [u for u in USERS.values() if u['role'] == 'student']
     
     return render_template('teacher_dashboard.html', 
@@ -245,7 +339,6 @@ def update_marks():
     subject_id = request.form.get('subject_id')
     marks_val = request.form.get('marks')
     
-    # Validation: Ensure this teacher owns the subject
     subject = SUBJECTS.get(subject_id)
     if not subject or subject['teacher_id'] != session['user']['username']:
         flash("You are not authorized to grade this subject.", "error")
@@ -262,11 +355,11 @@ def update_marks():
         flash("Student not found.", "error")
         return redirect(url_for('teacher_dashboard'))
 
-    # Save marks
     if student_username not in MARKS:
         MARKS[student_username] = {}
         
     MARKS[student_username][subject_id] = val
+    save_marks()
     flash(f"Updated marks for {USERS[student_username]['name']}.", "success")
     return redirect(url_for('teacher_dashboard'))
 
@@ -318,10 +411,8 @@ def student_dashboard():
 @login_required
 @role_required('student')
 def download_result():
-    # Re-use logic or just render a print-friendly version
-    return student_dashboard() # The dashboard template will have a print view
-
-# -------------------------------------------------------------------
+    return student_dashboard()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+

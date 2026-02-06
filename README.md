@@ -52,15 +52,23 @@ The system comes pre-loaded with the following users:
 
 ## 📝 Features & Workflow
 
-1.  **Admin (`admin`):**
+1.  **Persistence (CSV):**
+    - Data is stored in `data/*.csv` files.
+    - **Restarting the server DOES NOT lose data.**
+
+2.  **Authentication:**
+    - **Tabbed Login:** Dedicated tabs for Admin, Teacher, and Student.
+    - **Sign Up:** New users can register as Student or Teacher.
+
+3.  **Admin (`admin`):**
     - Create new Subjects and assign them to Teachers.
     - Create new Users (Students/Teachers).
     - **Publish/Unpublish Results:** Students cannot see their grades until results are published.
 
-2.  **Teacher (`t1`):**
+4.  **Teacher (`t1`):**
     - View assigned subjects.
     - Enter/Update marks for students.
 
-3.  **Student (`s1`):**
+5.  **Student (`s1`):**
     - View their report card (if published).
     - Download/Print their result.

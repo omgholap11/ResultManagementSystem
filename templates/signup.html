@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-container">
+    <div class="card">
+        <div class="card-header" style="text-align: center;">
+            <h2 class="card-title">Create Account</h2>
+        </div>
+
+        <form action="{{ url_for('signup') }}" method="POST">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" placeholder="John Doe" required>
+            </div>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Choose a username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Create a password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="role">I am a...</label>
+                <select name="role" id="role" required>
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                </select>
+                <small style="color: var(--text-muted); display: block; margin-top: 5px;">
+                    Note: Admin accounts can only be created by existing admins.
+                </small>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%;">Sign Up</button>
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="{{ url_for('login') }}" style="color: var(--accent-color); font-size: 0.9rem;">Already have an
+                    account? Login</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
