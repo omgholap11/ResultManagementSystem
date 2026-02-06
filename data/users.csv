@@ -1,3 +1,6 @@
 username,password,role,name
 admin,123,admin,System Administrator
-user1,123456,student,user
+t1,123,teacher,Alice Teacher
+t2,123,teacher,Bob Teacher
+s1,123,student,John Student
+s2,123,student,Jane Student

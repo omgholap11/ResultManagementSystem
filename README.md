@@ -38,17 +38,15 @@ Result_Management_System/
 3.  **Access in Browser:**
     Open [http://localhost:5000](http://localhost:5000)
 
-## 🔑 Demo Credentials
+## 🔑 Demo Credentials (Pre-loaded in `data/users.csv`)
 
-The system comes pre-loaded with the following users:
-
-| Role | Username | Password |
-|------|----------|----------|
-| **Admin** | `admin` | `123` |
-| **Teacher** | `t1` | `123` |
-| **Teacher** | `t2` | `123` |
-| **Student** | `s1` | `123` |
-| **Student** | `s2` | `123` |
+| Role | Name | Username | Password |
+|------|------|----------|----------|
+| **Admin** | System Administrator | `admin` | `123` |
+| **Teacher** | Alice Teacher | `t1` | `123` |
+| **Teacher** | Bob Teacher | `t2` | `123` |
+| **Student** | John Student | `s1` | `123` |
+| **Student** | Jane Student | `s2` | `123` |
 
 ## 📝 Features & Workflow
 
