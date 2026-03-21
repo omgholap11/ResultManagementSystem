@@ -3,39 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Result Management System</title>
+    <title>EduGrade — Result Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body data-theme="dark">
+    <!-- MESH BG -->
+    <div class="mesh"></div>
 
-    <nav class="navbar">
-        <a href="/" class="brand">RMS</a>
-        <div class="nav-links">
-            {% if session.get('user') %}
-                <span style="margin-right: 15px; color: #bbb;">Logged in as {{ session['user']['name'] }} ({{ session['user']['role']|title }})</span>
-                <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Login</a>
-            {% endif %}
+    <!-- ─── HEADER ─── -->
+    <header>
+        <div class="header-inner">
+            <a href="/" class="logo">
+                <div class="logo-icon">🎓</div>
+                Edu<span>Grade</span>
+            </a>
+            <nav>
+                {% if session.user %}
+                    <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
+                    <a href="{{ url_for('logout') }}" class="btn-outline">Logout</a>
+                {% else %}
+                    <a href="/#how">How it works</a>
+                    <a href="/#features">Features</a>
+                    <a href="{{ url_for('login') }}">Sign In</a>
+                    <a href="{{ url_for('signup') }}" class="btn-primary">Get Started</a>
+                {% endif %}
+                <div class="header-actions" style="margin-left: 10px;">
+                    <div class="theme-toggle" id="theme-toggle" title="Toggle Theme">🌓</div>
+                </div>
+            </nav>
         </div>
-    </nav>
+    </header>
 
-    <div class="container">
+    <script>
+        // Theme Toggle Logic
+        const themeToggle = document.getElementById('theme-toggle');
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-theme', theme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeToggle.innerText = newTheme === 'dark' ? '🌓' : '☀️';
+        });
+        
+        // Update emoji on load
+        themeToggle.innerText = (localStorage.getItem('theme') || 'dark') === 'dark' ? '🌓' : '☀️';
+    </script>
+
+    <!-- CONTENT -->
+    <main style="padding-top: 68px;">
         <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <div class="section-inner" style="margin-top: 2rem;">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'info' else 'success' }} fade-in">
+                            {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %}
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
-        <!-- Content Block -->
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <!-- ─── FOOTER ─── -->
+    <footer id="footer">
+        <div class="footer-main">
+            <div class="footer-brand">
+                <a href="#" class="logo">
+                    <div class="logo-icon">🎓</div>
+                    Edu<span>Grade</span>
+                </a>
+                <p style="font-size: 0.85rem; color: var(--text-2); line-height: 1.7; margin-top: 14px; margin-bottom: 22px;">The modern result management platform for educational institutions. Transparent, fast, and built for everyone.</p>
+                <div style="display: flex; gap: 10px;">
+                    <a class="social-btn" href="#">𝕏</a>
+                    <a class="social-btn" href="#">in</a>
+                    <a class="social-btn" href="#">⌥</a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; margin-bottom: 18px;">Platform</h4>
+                <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                    <li><a href="/#features" style="font-size: 0.85rem; color: var(--text-2); text-decoration: none;">Features</a></li>
+                    <li><a href="/#roles" style="font-size: 0.85rem; color: var(--text-2); text-decoration: none;">For Teachers</a></li>
+                    <li><a href="/#roles" style="font-size: 0.85rem; color: var(--text-2); text-decoration: none;">For Students</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; margin-bottom: 18px;">Company</h4>
+                <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                    <li><a href="#" style="font-size: 0.85rem; color: var(--text-2); text-decoration: none;">About Us</a></li>
+                    <li><a href="#" style="font-size: 0.85rem; color: var(--text-2); text-decoration: none;">Privacy</a></li>
+                    <li><a href="#" style="font-size: 0.85rem; color: var(--text-2); text-decoration: none;">Terms</a></li>
+                </ul>
+            </div>
+        </div>
+        <div style="max-width: 1180px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid var(--card-border); text-align: center;">
+            <p style="font-size: 0.8rem; color: var(--text-3);">© 2026 EduGrade. All rights reserved. Built with ❤️ for education.</p>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

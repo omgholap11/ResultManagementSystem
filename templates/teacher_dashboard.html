@@ -1,63 +1,413 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduGrade — Teacher Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/teacher.css') }}">
+</head>
+<body>
 
-{% block content %}
-<h1 style="margin-bottom: 1.5rem;">Teacher Dashboard</h1>
+<!-- ──────────── SIDEBAR ──────────── -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">🎓</div>
+    <div class="brand-name">Edu<span>Grade</span></div>
+  </div>
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Enter Student Marks</h3>
+  <div class="subject-pin">
+    <div class="subject-pin-label">Your Subject</div>
+    <div class="subject-pin-name" id="sideSubjectName"></div>
+    <div class="subject-pin-code" id="sideSubjectCode"></div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-item active">
+      <span class="nav-icon">📊</span> Dashboard
     </div>
-    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Select a subject and a student to update their marks.
-    </p>
+    <a href="{{ url_for('logout') }}" class="nav-item">
+      <span class="nav-icon">🚪</span> Logout
+    </a>
+  </nav>
 
-    <form action="{{ url_for('update_marks') }}" method="POST">
-        <div
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: end;">
+  <div class="sidebar-footer">
+    <a href="{{ url_for('logout') }}" class="teacher-info">
+      <div class="teacher-avatar" id="teacherInitial"></div>
+      <div>
+        <div class="teacher-name" id="teacherNameSide"></div>
+        <div class="teacher-role" id="teacherDept"></div>
+      </div>
+    </a>
+  </div>
+</aside>
 
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="subject_id">Subject</label>
-                <select name="subject_id" id="subject_id" required>
-                    <option value="" disabled selected>Select Subject</option>
-                    {% for sub in subjects %}
-                    <option value="{{ sub.id }}">{{ sub.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+<!-- ──────────── MAIN ──────────── -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 id="topSubjectName"></h1>
+      <p id="topTeacherInfo"></p>
+    </div>
+    <div class="topbar-right">
+      <button class="topbar-btn btn-ghost" id="exportBtn">⬇ Export CSV</button>
+      <button class="topbar-btn btn-accent" id="addToggleBtn" onclick="toggleAddForm()">＋ Add Student</button>
+    </div>
+  </div>
 
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="student_id">Student</label>
-                <select name="student_id" id="student_id" required>
-                    <option value="" disabled selected>Select Student</option>
-                    {% for stu in students %}
-                    <option value="{{ stu.username }}">{{ stu.name }} ({{ stu.username }})</option>
-                    {% endfor %}
-                </select>
-            </div>
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">Total Students</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-sub">Enrolled this semester</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-label">Class Average</div>
+        <div class="stat-value" id="statAvg">—</div>
+        <div class="stat-sub">Out of 100</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Pass Rate</div>
+        <div class="stat-value" id="statPass">—</div>
+        <div class="stat-sub">Above 40 marks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-label">Top Score</div>
+        <div class="stat-value" id="statTop">—</div>
+        <div class="stat-sub" id="statTopName">—</div>
+      </div>
+    </div>
 
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="marks">Marks (0-100)</label>
-                <input type="number" name="marks" id="marks" min="0" max="100" placeholder="e.g. 85" required>
-            </div>
-
-            <button type="submit" class="btn">Update Marks</button>
+    <!-- MAIN PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <div class="panel-title-icon">📋</div>
+          Student Marks Register
         </div>
-    </form>
+        <div class="panel-actions">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search name or roll no…" oninput="filterTable()">
+          </div>
+          <select id="sortSelect" onchange="sortTable()" style="background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:8px 12px;font-size:0.8rem;color:var(--text2);font-family:'DM Sans',sans-serif;outline:none;cursor:pointer">
+            <option value="roll">Sort: Roll No.</option>
+            <option value="nameAZ">Name A→Z</option>
+            <option value="marksHigh">Marks High→Low</option>
+            <option value="marksLow">Marks Low→High</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ADD FORM -->
+      <div class="add-form-wrap" id="addFormWrap">
+        <div class="add-form">
+          <div class="form-group">
+            <label class="form-label">Roll Number</label>
+            <input class="form-input" id="inp-roll" placeholder="e.g. 2024001" maxlength="20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" id="inp-name" placeholder="Student full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Internal (30)</label>
+            <input class="form-input" id="inp-internal" type="number" min="0" max="30" placeholder="0–30">
+          </div>
+          <div class="form-group">
+            <label class="form-label">External (70)</label>
+            <input class="form-input" id="inp-external" type="number" min="0" max="70" placeholder="0–70">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Remarks (optional)</label>
+            <input class="form-input" id="inp-remarks" placeholder="e.g. Absent, Exempted…">
+          </div>
+          <button class="add-submit" id="addBtn" onclick="addStudent()">＋ Add Entry</button>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-wrap">
+        <table id="marksTable">
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th>Roll No.</th>
+              <th>Student Name</th>
+              <th>Internal <span style="font-weight:400;opacity:0.5">/30</span></th>
+              <th>External <span style="font-weight:400;opacity:0.5">/70</span></th>
+              <th>Total <span style="font-weight:400;opacity:0.5">/100</span></th>
+              <th>Grade</th>
+              <th>Status</th>
+              <th>Remarks</th>
+              <th style="text-align:center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+          <span>📭</span>
+          <p>No student records yet. Click <strong>+ Add Student</strong> to start entering marks.</p>
+        </div>
+      </div>
+    </div>
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="overlay" id="deleteOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">Delete Record?</div>
+    <div class="confirm-sub" id="confirmText">This will permanently remove the student record. This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-del" id="confirmDelBtn" onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">My Assigned Subjects</h3>
-    </div>
-    {% if subjects %}
-    <ul>
-        {% for sub in subjects %}
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee; last-child: border-bottom: none;">
-            <strong>{{ sub.name }}</strong> (ID: {{ sub.id }})
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p style="color: var(--text-muted);">No subjects assigned yet.</p>
-    {% endif %}
-</div>
-{% endblock %}
+<script>
+const TEACHER = {{ teacher_json | safe }};
+let students = {{ students_json | safe }};
+
+// UI Initialization
+document.getElementById('sideSubjectName').textContent = TEACHER.subject;
+document.getElementById('sideSubjectCode').textContent = `${TEACHER.code} · ${TEACHER.semester}`;
+document.getElementById('teacherInitial').textContent = TEACHER.initials;
+document.getElementById('teacherNameSide').textContent = TEACHER.name;
+document.getElementById('teacherDept').textContent = TEACHER.dept;
+document.getElementById('topSubjectName').textContent = `${TEACHER.subject} — ${TEACHER.code}`;
+document.getElementById('topTeacherInfo').textContent = `${TEACHER.name}  ·  ${TEACHER.semester}  ·  2025–26 Academic Year`;
+
+let deleteTargetId = null;
+let editingId = null;
+let searchTerm = '';
+let sortMode = 'roll';
+
+function getGrade(total) {
+  if (total >= 90) return 'S';
+  if (total >= 75) return 'A';
+  if (total >= 60) return 'B';
+  if (total >= 40) return 'C';
+  return 'F';
+}
+function markFillColor(total) {
+  if (total >= 75) return 'linear-gradient(90deg,#22c98a,#22c9c0)';
+  if (total >= 60) return 'linear-gradient(90deg,#3d8ef8,#7b5cf8)';
+  if (total >= 40) return 'linear-gradient(90deg,#f8c53d,#f87c3d)';
+  return 'linear-gradient(90deg,#f84f4f,#f84fa8)';
+}
+
+function getFiltered() {
+  let list = [...students];
+  if (searchTerm) {
+    const q = searchTerm.toLowerCase();
+    list = list.filter(s => s.name.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q));
+  }
+  switch(sortMode) {
+    case 'nameAZ':    list.sort((a,b)=>a.name.localeCompare(b.name)); break;
+    case 'marksHigh': list.sort((a,b)=>(b.internal+b.external)-(a.internal+a.external)); break;
+    case 'marksLow':  list.sort((a,b)=>(a.internal+a.external)-(b.internal+b.external)); break;
+    default:          list.sort((a,b)=>a.roll.localeCompare(b.roll)); break;
+  }
+  return list;
+}
+
+function render() {
+  const list = getFiltered();
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  tbody.innerHTML = '';
+
+  if (list.length === 0) {
+    empty.classList.add('show');
+    updateStats();
+    return;
+  }
+  empty.classList.remove('show');
+
+  list.forEach((s, i) => {
+    const total = s.internal + s.external;
+    const grade = getGrade(total);
+    const pass  = total >= 40;
+    const isEditing = editingId === s.id;
+    const tr = document.createElement('tr');
+    if (isEditing) tr.classList.add('editing');
+
+    tr.innerHTML = `
+      <td style="color:var(--text3);font-size:0.75rem">${i+1}</td>
+      <td class="roll">${s.roll}</td>
+      <td class="name">${s.name}</td>
+      <td>${isEditing ? `<input class="edit-input" id="e-int" value="${s.internal}" type="number" min="0" max="30" style="width:70px">` : `<div class="mark-bar-wrap"><span class="mark-val">${s.internal}</span><div class="mark-track"><div class="mark-fill" style="width:${(s.internal/30)*100}%;background:${markFillColor(total)}"></div></div></div>`}</td>
+      <td>${isEditing ? `<input class="edit-input" id="e-ext" value="${s.external}" type="number" min="0" max="70" style="width:70px">` : `<div class="mark-bar-wrap"><span class="mark-val">${s.external}</span><div class="mark-track"><div class="mark-fill" style="width:${(s.external/70)*100}%;background:${markFillColor(total)}"></div></div></div>`}</td>
+      <td><div class="mark-bar-wrap"><span class="mark-val" style="font-weight:700;color:var(--text)">${total}</span><div class="mark-track"><div class="mark-fill" style="width:${total}%;background:${markFillColor(total)}"></div></div></div></td>
+      <td><span class="grade-badge grade-${grade}">${grade}</span></td>
+      <td><span class="chip ${pass?'chip-green':'chip-red'}">${pass?'✓ Pass':'✗ Fail'}</span></td>
+      <td style="color:var(--text3);font-size:0.8rem;font-style:italic">${isEditing ? `<input class="edit-input" id="e-rem" value="${s.remarks}" placeholder="remarks" style="width:110px">` : (s.remarks || '—')}</td>
+      <td>
+        <div class="action-cell" style="justify-content:center">
+          ${isEditing ? `
+            <button class="act-btn act-save" title="Save" onclick="saveEdit('${s.id}')" id="saveBtn-${s.id}">💾</button>
+            <button class="act-btn act-cancel" title="Cancel" onclick="cancelEdit()">✕</button>
+          ` : `
+            <button class="act-btn act-edit" title="Edit Marks" onclick="startEdit('${s.id}')">✏️</button>
+            <button class="act-btn act-del"  title="Delete"     onclick="askDelete('${s.id}','${s.name.replace(/'/g, "\\'")}')">🗑</button>
+          `}
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateStats();
+}
+
+function updateStats() {
+  const total = students.length;
+  document.getElementById('statTotal').textContent = total;
+  if (total === 0) {
+    document.getElementById('statAvg').textContent = '—';
+    document.getElementById('statPass').textContent = '—';
+    document.getElementById('statTop').textContent = '—';
+    document.getElementById('statTopName').textContent = '—';
+    return;
+  }
+  const totals = students.map(s => s.internal + s.external);
+  const avg = (totals.reduce((a,b)=>a+b,0) / total).toFixed(1);
+  const passRate = Math.round((totals.filter(t => t >= 40).length / total) * 100);
+  const maxMark = Math.max(...totals);
+  
+  document.getElementById('statAvg').textContent = avg;
+  document.getElementById('statPass').textContent = passRate + '%';
+  document.getElementById('statTop').textContent = maxMark;
+  document.getElementById('statTopName').textContent = students.filter(s => (s.internal+s.external) === maxMark).map(s=>s.name.split(' ')[0]).join(', ');
+}
+
+function toggleAddForm() {
+  const wrap = document.getElementById('addFormWrap');
+  wrap.classList.toggle('open');
+  document.getElementById('addToggleBtn').textContent = wrap.classList.contains('open') ? '✕ Cancel' : '＋ Add Student';
+  if (wrap.classList.contains('open')) document.getElementById('inp-roll').focus();
+}
+
+async function addStudent() {
+  const roll = document.getElementById('inp-roll').value.trim();
+  const name = document.getElementById('inp-name').value.trim();
+  const internal = parseInt(document.getElementById('inp-internal').value) || 0;
+  const external = parseInt(document.getElementById('inp-external').value) || 0;
+  const remarks = document.getElementById('inp-remarks').value.trim();
+
+  if (!roll || !name) return showToast('Roll number and name are required', 'warn');
+  if (students.find(s => s.roll === roll)) return showToast('Roll number already exists', 'error');
+  if (internal < 0 || internal > 30) return showToast('Internal marks must be 0–30', 'warn');
+  if (external < 0 || external > 70) return showToast('External marks must be 0–70', 'warn');
+
+  const btn = document.getElementById('addBtn');
+  btn.textContent = "Saving..."; btn.disabled = true;
+
+  try {
+    const res = await fetch('/teacher/api/save_marks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roll, name, internal, external, remarks })
+    });
+    if (res.ok) {
+        students.push({ id: roll, roll, name, internal, external, remarks });
+        ['inp-roll','inp-name','inp-internal','inp-external','inp-remarks'].forEach(id => document.getElementById(id).value = '');
+        toggleAddForm(); render(); showToast(`${name} added successfully`, 'success');
+    } else showToast('Error saving data to DB', 'error');
+  } catch(e) { showToast('Network error', 'error'); }
+  finally { btn.textContent = "＋ Add Entry"; btn.disabled = false; }
+}
+
+function startEdit(id) { editingId = id; render(); setTimeout(()=>document.getElementById('e-int')?.focus(), 50); }
+function cancelEdit() { editingId = null; render(); }
+
+async function saveEdit(id) {
+  const internal = parseInt(document.getElementById('e-int').value) || 0;
+  const external = parseInt(document.getElementById('e-ext').value) || 0;
+  const remarks = document.getElementById('e-rem').value.trim();
+
+  if (internal < 0 || internal > 30) return showToast('Internal marks must be 0–30', 'warn');
+  if (external < 0 || external > 70) return showToast('External marks must be 0–70', 'warn');
+
+  const s = students.find(s => s.id === id);
+  const btn = document.getElementById(`saveBtn-${id}`);
+  if(btn) { btn.textContent = "⌛"; btn.disabled = true; }
+
+  try {
+      const res = await fetch('/teacher/api/save_marks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roll: s.roll, name: s.name, internal, external, remarks })
+      });
+      if (res.ok) {
+          s.internal = internal; s.external = external; s.remarks = remarks;
+          editingId = null; render(); showToast(`${s.name}'s marks updated`, 'success');
+      } else { showToast('Error updating marks in DB', 'error'); if(btn){btn.textContent="💾";btn.disabled=false;} }
+  } catch(e) { showToast('Error saving edits', 'error'); if(btn){btn.textContent="💾";btn.disabled=false;} }
+}
+
+function askDelete(id, name) {
+  deleteTargetId = id;
+  document.getElementById('confirmText').textContent = `This will permanently remove ${name}'s record from ${TEACHER.subject}. This cannot be undone.`;
+  document.getElementById('deleteOverlay').classList.add('open');
+}
+function closeConfirm() { deleteTargetId = null; document.getElementById('deleteOverlay').classList.remove('open'); }
+
+async function confirmDelete() {
+  if (!deleteTargetId) return;
+  const s = students.find(s => s.id === deleteTargetId);
+  const btn = document.getElementById('confirmDelBtn');
+  btn.textContent = "Deleting..."; btn.disabled = true;
+
+  try {
+      const res = await fetch('/teacher/api/delete_marks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roll: s.roll })
+      });
+      if (res.ok) {
+          students = students.filter(s => s.id !== deleteTargetId);
+          closeConfirm(); render(); showToast(`${s.name}'s record deleted`, 'error');
+      } else showToast('Failed to delete from DB', 'error');
+  } catch(e) { showToast('Network Error', 'error'); } 
+  finally { btn.textContent = "Yes, Delete"; btn.disabled = false; }
+}
+
+function filterTable() { searchTerm = document.getElementById('searchInput').value; render(); }
+function sortTable() { sortMode = document.getElementById('sortSelect').value; render(); }
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  let csv = 'Roll No,Student Name,Internal (/30),External (/70),Total (/100),Grade,Status,Remarks\n';
+  [...students].sort((a,b)=>a.roll.localeCompare(b.roll)).forEach(s => {
+    const t = s.internal + s.external;
+    csv += `${s.roll},"${s.name}",${s.internal},${s.external},${t},${getGrade(t)},${t>=40?'Pass':'Fail'},"${s.remarks}"\n`;
+  });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `${TEACHER.code}_marks.csv`; a.click(); showToast('CSV exported successfully');
+});
+
+function showToast(msg, type='success') {
+  const colors = { success: '#22c98a', error: '#f84f4f', warn: '#f8c53d' };
+  const div = document.createElement('div'); div.className = 'toast';
+  div.innerHTML = `<div class="toast-dot" style="background:${colors[type]}"></div><span>${msg}</span>`;
+  document.getElementById('toastWrap').appendChild(div);
+  setTimeout(() => { div.classList.add('removing'); setTimeout(() => div.remove(), 300); }, 2800);
+}
+document.getElementById('deleteOverlay').addEventListener('click', function(e) { if(e.target === this) closeConfirm(); });
+render();
+</script>
+</body>
+</html>

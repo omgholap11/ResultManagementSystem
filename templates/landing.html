@@ -1,52 +1,248 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landing - Result Management System</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-</head>
-
-<body>
-
-    <nav class="navbar">
-        <a href="/" class="brand">RMS</a>
-        <div class="nav-links">
-            <a href="{{ url_for('login') }}">Login</a>
-            <a href="{{ url_for('signup') }}">Sign Up</a>
+{% block content %}
+<!-- ─── HERO ─── -->
+<section class="hero" style="min-height: 90vh; display: flex; align-items: center; padding: 40px 0 80px;">
+  <div class="section-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;">
+    <!-- Left -->
+    <div class="fade-in">
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 100px; border: 1px solid var(--card-border); background: var(--card); font-size: 0.78rem; font-weight: 500; color: var(--text-2); margin-bottom: 28px;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent3); animation: pulse 2s infinite;"></span>
+        Trusted by 500+ institutions
+      </div>
+      <h1 class="section-title" style="font-size: clamp(2.6rem, 5vw, 4rem); line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 22px;">
+        Manage Results.<br>
+        <span style="background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Empower Learning.</span>
+      </h1>
+      <p class="section-desc" style="font-size: 1.05rem; line-height: 1.7; color: var(--text-2); max-width: 500px; margin-bottom: 36px;">
+        EduGrade is the modern platform where teachers publish results and students track academic progress — seamlessly, transparently, and in real time.
+      </p>
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <a href="{{ url_for('signup') }}" class="btn-primary btn-lg">
+          Create Free Account →
+        </a>
+        <a href="#how" class="btn-outline btn-lg">See How It Works</a>
+      </div>
+      <div style="display: flex; gap: 32px; margin-top: 48px;">
+        <div class="stat">
+          <div style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--text); line-height: 1;">50k+</div>
+          <div style="font-size: 0.82rem; color: var(--text-3); margin-top: 4px;">Students</div>
         </div>
-    </nav>
-
-    <div class="hero">
-        <h1>Simplify Result Management</h1>
-        <p>A comprehensive platform for Admins, Teachers, and Students.</p>
-        <a href="{{ url_for('login') }}" class="hero-btn">Get Started</a>
+        <div class="stat">
+          <div style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--text); line-height: 1;">3k+</div>
+          <div style="font-size: 0.82rem; color: var(--text-3); margin-top: 4px;">Educators</div>
+        </div>
+        <div class="stat">
+          <div style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--text); line-height: 1;">99.9%</div>
+          <div style="font-size: 0.82rem; color: var(--text-3); margin-top: 4px;">Uptime</div>
+        </div>
+      </div>
     </div>
-
-    <div class="features">
-        <div class="feature-card">
-            <div class="feature-icon">🎓</div>
-            <h3>For Students</h3>
-            <p>View your marks and download report cards instantly locally.</p>
+    <!-- Right -->
+    <div class="fade-in" style="animation-delay: 0.2s;">
+      <div class="dash-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <div style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;">Student Dashboard</div>
+            <div style="font-size: 0.78rem; color: var(--text-3); margin-top: 2px;">Semester II — 2025–26</div>
+          </div>
+          <div style="padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; background: rgba(0,212,170,0.15); color: var(--accent3);">Live</div>
         </div>
-        <div class="feature-card">
-            <div class="feature-icon">👩‍🏫</div>
-            <h3>For Teachers</h3>
-            <p>Easily manage marks and subjects with a dedicated dashboard.</p>
+        <div class="grade-bar-list">
+          <div class="grade-item">
+            <div style="font-size: 0.8rem; color: var(--text-2); width: 80px;">Maths</div>
+            <div class="grade-track"><div class="grade-fill" style="width:92%"></div></div>
+            <span style="font-size:0.8rem; font-weight:600;">92</span>
+          </div>
+          <div class="grade-item">
+            <div style="font-size: 0.8rem; color: var(--text-2); width: 80px;">Physics</div>
+            <div class="grade-track"><div class="grade-fill" style="width:87%"></div></div>
+            <span style="font-size:0.8rem; font-weight:600;">87</span>
+          </div>
         </div>
-        <div class="feature-card">
-            <div class="feature-icon">🔒</div>
-            <h3>For Admins</h3>
-            <p>Secure control over users, subjects, and result publishing.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+          <div style="background: var(--bg2); border-radius: 12px; padding: 14px; border: 1px solid var(--card-border);">
+            <div style="font-size: 0.72rem; color: var(--text-3); margin-bottom: 6px;">Total GPA</div>
+            <div style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.3rem;">8.7 <span style="font-size: 0.7rem; color: var(--accent3);">↑ 0.4</span></div>
+          </div>
+          <div style="background: var(--bg2); border-radius: 12px; padding: 14px; border: 1px solid var(--card-border);">
+            <div style="font-size: 0.72rem; color: var(--text-3); margin-bottom: 6px;">Class Rank</div>
+            <div style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.3rem;">4th <span style="font-size: 0.7rem; color: var(--accent3);">Top 5%</span></div>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <footer class="footer">
-        <p>&copy; 2026 Result Management System. All rights reserved.</p>
-    </footer>
+<!-- ─── HOW IT WORKS ─── -->
+<section class="section-pad" id="how">
+  <div class="section-inner">
+    <div class="reveal" style="text-align:center">
+      <div class="section-tag">Process</div>
+      <h2 class="section-title" style="margin:0 auto">How EduGrade Works</h2>
+      <p class="section-desc" style="margin:12px auto 0">Simple. Transparent. Efficient. From registration to result in just a few steps.</p>
+    </div>
+    <div class="how-grid">
+      <div class="card how-card reveal">
+        <div class="how-num">01</div>
+        <div class="how-icon">📝</div>
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 10px;">Register & Set Up</h3>
+        <p style="font-size: 0.88rem; color: var(--text-2); line-height: 1.65;">Students and teachers sign up in minutes. Choose your role and join your institution — no complex onboarding.</p>
+      </div>
+      <div class="card how-card reveal" style="transition-delay:0.1s">
+        <div class="how-num">02</div>
+        <div class="how-icon">📊</div>
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 10px;">Manage & Enter Marks</h3>
+        <p style="font-size: 0.88rem; color: var(--text-2); line-height: 1.65;">Teachers record marks per subject and exam. Individual entries or bulk management — full flexibility.</p>
+      </div>
+      <div class="card how-card reveal" style="transition-delay:0.2s">
+        <div class="how-num">03</div>
+        <div class="how-icon">🔔</div>
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 10px;">Publish & View</h3>
+        <p style="font-size: 0.88rem; color: var(--text-2); line-height: 1.65;">Results are instantly accessible once published. Students track progress and download marksheets anytime.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-</body>
+<!-- ─── FEATURES ─── -->
+<section class="section-pad" id="features">
+  <div class="section-inner">
+    <div class="section-tag reveal">Features</div>
+    <h2 class="section-title reveal">Everything you need,<br>nothing you don't.</h2>
 
-</html>
+    <div class="features-layout">
+      <div class="feature-tabs reveal">
+        <div class="feature-tab active" data-idx="0">
+          <h4 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; display: flex; align-items: center; gap: 10px;"><span class="ft-icon">📈</span> Real-time Analytics</h4>
+          <p style="font-size: 0.84rem; color: var(--text-2); line-height: 1.6;">Live dashboards for teachers to track class performance at a glance.</p>
+        </div>
+        <div class="feature-tab" data-idx="1">
+          <h4 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; display: flex; align-items: center; gap: 10px;"><span class="ft-icon">🔒</span> Secure Access</h4>
+          <p style="font-size: 0.84rem; color: var(--text-2); line-height: 1.6;">Role-based permissions so everyone only sees what they should.</p>
+        </div>
+        <div class="feature-tab" data-idx="2">
+          <h4 style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; display: flex; align-items: center; gap: 10px;"><span class="ft-icon">📄</span> Report PDF</h4>
+          <p style="font-size: 0.84rem; color: var(--text-2); line-height: 1.6;">Auto-generate detailed result reports and marksheets in one click.</p>
+        </div>
+      </div>
+      <div class="feature-display reveal">
+        <div class="fd-inner">
+          <div style="font-size: 3.5rem; margin-bottom: 20px;" class="fd-emoji">📈</div>
+          <div style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; margin-bottom: 12px;" class="fd-title">Real-time Analytics</div>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;" class="fd-list">
+            <li style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: var(--text-2); line-height: 1.5;">Subject-wise performance trends</li>
+            <li style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: var(--text-2); line-height: 1.5;">Class average and individual charts</li>
+            <li style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: var(--text-2); line-height: 1.5;">Identify at-risk students instantly</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ROLES ─── -->
+<section class="section-pad" id="roles">
+  <div class="section-inner">
+    <div style="text-align:center" class="reveal">
+      <div class="section-tag">Roles</div>
+      <h2 class="section-title" style="margin:0 auto">Built for every stakeholder</h2>
+    </div>
+    <div class="roles-grid">
+      <div class="card role-card teacher reveal">
+        <div style="font-size: 2.5rem; margin-bottom: 18px;">👩‍🏫</div>
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; margin-bottom: 8px;">For Teachers</h3>
+        <p style="font-size: 0.88rem; color: var(--text-2); margin-bottom: 24px;">Take control of result management with powerful tools.</p>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px;">
+          <li style="display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text-2);"><div class="check">✓</div>Manage marks by subject</li>
+          <li style="display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text-2);"><div class="check">✓</div>Publish with one click</li>
+          <li style="display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text-2);"><div class="check">✓</div>Performance reports</li>
+        </ul>
+        <div style="margin-top:28px">
+          <a href="{{ url_for('signup') }}" class="btn-primary" style="display:inline-block">Join as Teacher →</a>
+        </div>
+      </div>
+      <div class="card role-card student reveal" style="transition-delay:0.15s">
+        <div style="font-size: 2.5rem; margin-bottom: 18px;">🧑‍🎓</div>
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; margin-bottom: 8px;">For Students</h3>
+        <p style="font-size: 0.88rem; color: var(--text-2); margin-bottom: 24px;">Track your progress, celebrate your wins.</p>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px;">
+          <li style="display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text-2);"><div class="check" style="background:var(--accent3)">✓</div>View results instantly</li>
+          <li style="display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text-2);"><div class="check" style="background:var(--accent3)">✓</div>Track progress history</li>
+          <li style="display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text-2);"><div class="check" style="background:var(--accent3)">✓</div>Download marksheets</li>
+        </ul>
+        <div style="margin-top:28px">
+          <a href="{{ url_for('signup') }}" class="btn-primary" style="background:var(--accent3); display:inline-block">Join as Student →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TESTIMONIALS ─── -->
+<section class="section-pad" style="background:var(--bg2);">
+  <div class="section-inner">
+    <div style="text-align:center" class="reveal">
+      <div class="section-tag">Testimonials</div>
+      <h2 class="section-title">Loved by educators</h2>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card reveal card">
+        <p style="font-size: 0.88rem; color: var(--text-2); line-height: 1.7; margin-bottom: 18px; font-style: italic;">"EduGrade transformed how I manage results. What used to take a day now takes 20 minutes."</p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="testi-avatar" style="background:var(--grad)">P</div>
+          <div><div style="font-weight: 600; font-size: 0.85rem;">Prof. Priya Sharma</div></div>
+        </div>
+      </div>
+      <div class="testi-card reveal card" style="transition-delay:0.1s">
+        <p style="font-size: 0.88rem; color: var(--text-2); line-height: 1.7; margin-bottom: 18px; font-style: italic;">"The moment results are out, students get notified. No more crowded notice boards!"</p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="testi-avatar" style="background:var(--grad)">R</div>
+          <div><div style="font-weight: 600; font-size: 0.85rem;">Rahul Mehta</div></div>
+        </div>
+      </div>
+      <div class="testi-card reveal card" style="transition-delay:0.2s">
+        <p style="font-size: 0.88rem; color: var(--text-2); line-height: 1.7; margin-bottom: 18px; font-style: italic;">"Identifying at-risk students early has never been easier with the analytics dashboard."</p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="testi-avatar" style="background:var(--grad)">A</div>
+          <div><div style="font-weight: 600; font-size: 0.85rem;">Anjali Verma</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA BANNER ─── -->
+<section>
+  <div class="section-inner">
+    <div class="cta-banner reveal">
+      <div style="position:relative">
+        <h2 style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.2rem; margin-bottom: 10px;">Ready to modernize?</h2>
+        <p style="color: var(--text-2); font-size: 0.95rem;">Join 500+ institutions today. Free to start.</p>
+      </div>
+      <div style="position:relative">
+        <a href="{{ url_for('signup') }}" class="btn-primary btn-lg">Start for Free</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Add reveals
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  reveals.forEach(r => observer.observe(r));
+
+  // Feature Taps
+  document.querySelectorAll('.feature-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.feature-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        // Simple swap logic can be added here
+    });
+  });
+</script>
+{% endblock %}

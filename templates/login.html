@@ -1,58 +1,70 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="login-container">
-    <div class="card" style="padding: 0;">
-
-        <!-- Tabs -->
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('admin', this)">Admin</div>
-            <div class="tab" onclick="switchTab('teacher', this)">Teacher</div>
-            <div class="tab" onclick="switchTab('student', this)">Student</div>
+<div style="max-width: 440px; margin: 4rem auto;" class="fade-in">
+    <div class="card">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🎓</div>
+            <h2 class="card-title" id="login-title">Student Login</h2>
+            <p style="color: var(--text-2); font-size: 0.9rem;">Access your EduGrade records</p>
         </div>
 
-        <div style="padding: 2rem;">
-            <div class="card-header" style="text-align: center; border-bottom: none; padding-bottom: 0;">
-                <h2 class="card-title" id="login-title">Admin Login</h2>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Please sign in to continue</p>
+        <!-- Role Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchLoginTab('student', this)">Student</div>
+            <div class="tab" onclick="switchLoginTab('teacher', this)">Teacher</div>
+            <div class="tab" onclick="switchLoginTab('admin', this)">Admin</div>
+        </div>
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <input type="hidden" id="role-input" name="role" value="student">
+
+            <div class="form-group">
+                <label id="identifier-label" for="username">Roll Number</label>
+                <input type="text" id="username" name="username" placeholder="Enter your roll number" required autofocus>
             </div>
 
-            <form action="{{ url_for('login') }}" method="POST">
-                <!-- Hidden inputs to track role -->
-                <input type="hidden" id="role-input" name="role" value="admin">
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
 
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Enter username" required autofocus>
-                </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; margin-top: 1rem;">
+                Sign In to Dashboard
+            </button>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter password" required>
-                </div>
-
-                <button type="submit" class="btn" style="width: 100%;">Sign In</button>
-                <div style="text-align: center; margin-top: 1rem;">
-                    <a href="{{ url_for('signup') }}" style="color: var(--accent-color); font-size: 0.9rem;">Need an
-                        account? Sign Up</a>
-                </div>
-            </form>
-        </div>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <p style="font-size: 0.85rem; color: var(--text-3);">
+                    Don't have an account? 
+                    <a href="{{ url_for('signup') }}" style="color: var(--accent); font-weight: 600; text-decoration: none;">Create one free</a>
+                </p>
+            </div>
+        </form>
     </div>
 </div>
 
-
-
 <script>
-    function switchTab(role, tabElement) {
-        // Update Tabs
+    function switchLoginTab(role, tabElement) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tabElement.classList.add('active');
 
-        // Update Hidden Input & Title
         document.getElementById('role-input').value = role;
         const title = role.charAt(0).toUpperCase() + role.slice(1);
         document.getElementById('login-title').innerText = title + ' Login';
+        
+        const label = document.getElementById('identifier-label');
+        const input = document.getElementById('username');
+        
+        if (role === 'student') {
+            label.innerText = 'Roll Number';
+            input.placeholder = 'Enter your roll number';
+        } else if (role === 'teacher') {
+            label.innerText = 'Email Address';
+            input.placeholder = 'Enter your email';
+        } else {
+            label.innerText = 'Username';
+            input.placeholder = 'Enter your admin username';
+        }
     }
 </script>
 {% endblock %}

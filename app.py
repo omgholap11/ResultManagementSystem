@@ -1,147 +1,117 @@
+import json
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from functools import wraps
 import uuid
 import os
-import csv
+from flask_mysqldb import MySQL
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_dev_key_change_me_in_prod'
 
-# -------------------------------------------------------------------
-#  DATA PERSISTENCE (CSV)
-# -------------------------------------------------------------------
+# MySQL Configuration
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'your_mysql_pasword_here'  # Replace with your MySQL root password
+app.config['MYSQL_DB'] = 'result_management_system'
 
-DATA_DIR = 'data'
-FILES = {
-    'users': os.path.join(DATA_DIR, 'users.csv'),
-    'subjects': os.path.join(DATA_DIR, 'subjects.csv'),
-    'marks': os.path.join(DATA_DIR, 'marks.csv'),
-    'config': os.path.join(DATA_DIR, 'config.csv')
-}
+mysql = MySQL(app)
 
-# Global Runtime Store (Loaded from CSV)
-USERS = {}
-SUBJECTS = {}
-MARKS = {}
-CONFIG = {'results_published': False}
+# -------------------------------------------------------------------
+#  DATABASE INITIALIZATION
+# -------------------------------------------------------------------
 
 def init_db():
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
-    
-    # Initialize files with headers if they don't exist
-    if not os.path.exists(FILES['users']):
-        with open(FILES['users'], 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['username', 'password', 'role', 'name'])
-            # Default Admin
-            writer.writerow(['admin', '123', 'admin', 'System Administrator'])
+    with app.app_context():
+        cur = mysql.connection.cursor()
+        
+        # Students: roll_number (PK), full_name, password, semester
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS students (
+                roll_number VARCHAR(20) PRIMARY KEY,
+                full_name VARCHAR(100) NOT NULL,
+                password VARCHAR(100) NOT NULL,
+                semester VARCHAR(20) NOT NULL
+            )
+        ''')
+        
+        # Teachers: email (PK), name, password, subject_of_teaching
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS teachers (
+                email VARCHAR(100) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                password VARCHAR(100) NOT NULL,
+                subject_of_teaching VARCHAR(100) NOT NULL
+            )
+        ''')
+        
+        # Admin: email (PK), name, password
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS admins (
+                email VARCHAR(100) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                password VARCHAR(100) NOT NULL
+            )
+        ''')
+        
+        # Marks: roll_number, subject_name, internal, external, remarks
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS marks (
+                roll_number VARCHAR(20),
+                subject_name VARCHAR(100),
+                internal INT NOT NULL DEFAULT 0,
+                external INT NOT NULL DEFAULT 0,
+                remarks VARCHAR(255) DEFAULT '',
+                PRIMARY KEY (roll_number, subject_name),
+                FOREIGN KEY (roll_number) REFERENCES students(roll_number) ON DELETE CASCADE
+            )
+        ''')
+        
+        # Config
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS config (
+                key_name VARCHAR(50) PRIMARY KEY,
+                value VARCHAR(50) NOT NULL
+            )
+        ''')
+        
+        # Seed Default Admin
+        cur.execute("SELECT * FROM admins WHERE email = 'admin@edugrade.com'")
+        if not cur.fetchone():
+            cur.execute("INSERT INTO admins (email, name, password) VALUES (%s, %s, %s)",
+                        ('admin@edugrade.com', 'System Admin', '123'))
+        
+        # Seed Default Config
+        cur.execute("SELECT * FROM config WHERE key_name = 'results_published'")
+        if not cur.fetchone():
+            cur.execute("INSERT INTO config (key_name, value) VALUES (%s, %s)",
+                        ('results_published', 'False'))
+            
+        mysql.connection.commit()
+        cur.close()
 
-    if not os.path.exists(FILES['subjects']):
-        with open(FILES['subjects'], 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['id', 'name', 'teacher_id'])
-
-    if not os.path.exists(FILES['marks']):
-        with open(FILES['marks'], 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['student_username', 'subject_id', 'marks'])
-
-    if not os.path.exists(FILES['config']):
-        with open(FILES['config'], 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['key', 'value'])
-            writer.writerow(['results_published', 'False'])
-
-def load_data():
-    global USERS, SUBJECTS, MARKS, CONFIG
-    USERS = {}
-    SUBJECTS = {}
-    MARKS = {}
-
-    # Load Users
-    if os.path.exists(FILES['users']):
-        with open(FILES['users'], 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                USERS[row['username']] = row
-
-    # Load Subjects
-    if os.path.exists(FILES['subjects']):
-        with open(FILES['subjects'], 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                SUBJECTS[row['id']] = row
-
-    # Load Marks
-    if os.path.exists(FILES['marks']):
-        with open(FILES['marks'], 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                stu = row['student_username']
-                sub = row['subject_id']
-                score = int(row['marks'])
-                if stu not in MARKS: MARKS[stu] = {}
-                MARKS[stu][sub] = score
-
-    # Load Config
-    if os.path.exists(FILES['config']):
-        with open(FILES['config'], 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row['key'] == 'results_published':
-                    CONFIG['results_published'] = (row['value'] == 'True')
-
-def save_users():
-    with open(FILES['users'], 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['username', 'password', 'role', 'name'])
-        for u in USERS.values():
-            writer.writerow([u['username'], u['password'], u['role'], u['name']])
-
-def save_subjects():
-    with open(FILES['subjects'], 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['id', 'name', 'teacher_id'])
-        for s in SUBJECTS.values():
-            writer.writerow([s['id'], s['name'], s['teacher_id']])
-
-def save_marks():
-    with open(FILES['marks'], 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['student_username', 'subject_id', 'marks'])
-        for stu_user, subjects in MARKS.items():
-            for sub_id, score in subjects.items():
-                writer.writerow([stu_user, sub_id, score])
-
-def save_config():
-    with open(FILES['config'], 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['key', 'value'])
-        writer.writerow(['results_published', str(CONFIG['results_published'])])
-
-# Initialize and Load
-init_db()
-load_data()
+try:
+    init_db()
+except Exception as e:
+    print(f"DB Error: {e}")
 
 # -------------------------------------------------------------------
-#  HELPER FUNCTIONS & DECORATORS
+#  HELPER FUNCTIONS
 # -------------------------------------------------------------------
 
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
-            flash("Please log in to access this page.", "error")
+            flash("Session expired. Please login.", "error")
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
-def role_required(required_role):
+def role_required(role):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if 'user' not in session or session['user'].get('role') != required_role:
+            if session.get('user', {}).get('role') != role:
                 flash("Unauthorized access.", "error")
                 return redirect(url_for('dashboard'))
             return f(*args, **kwargs)
@@ -161,257 +131,201 @@ def get_grade(marks):
 
 @app.route('/')
 def home():
-    if 'user' in session:
-        return redirect(url_for('dashboard'))
     return render_template('landing.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
+        identifier = request.form.get('username') # Roll Number or Email
         password = request.form.get('password')
-        role = request.form.get('role') # Passed from hidden field in tabs
-
-        user = USERS.get(username)
+        role = request.form.get('role')
         
-        if user and user['password'] == password:
-            if role and user['role'] != role:
-                flash(f"Invalid role. Please login as {user['role']}.", "error")
-                return redirect(url_for('login'))
+        cur = mysql.connection.cursor()
+        user_info = None
+        
+        if role == 'student':
+            cur.execute("SELECT * FROM students WHERE roll_number = %s AND password = %s", (identifier, password))
+            res = cur.fetchone()
+            if res: user_info = {'id': res[0], 'name': res[1], 'role': 'student', 'semester': res[3]}
+        elif role == 'teacher':
+            cur.execute("SELECT * FROM teachers WHERE email = %s AND password = %s", (identifier, password))
+            res = cur.fetchone()
+            if res: user_info = {'id': res[0], 'name': res[1], 'role': 'teacher', 'subject': res[3]}
+        elif role == 'admin':
+            cur.execute("SELECT * FROM admins WHERE email = %s AND password = %s", (identifier, password))
+            res = cur.fetchone()
+            if res: user_info = {'id': res[0], 'name': res[1], 'role': 'admin'}
             
-            session['user'] = user
-            flash(f"Welcome back, {user['name']}!", "success")
+        cur.close()
+        if user_info:
+            session['user'] = user_info
+            flash(f"Welcome, {user_info['name']}!", "success")
             return redirect(url_for('dashboard'))
-        else:
-            flash("Invalid username or password.", "error")
-            
+        flash("Invalid credentials.", "error")
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        role = request.form.get('role')
         name = request.form.get('name')
-        username = request.form.get('username')
         password = request.form.get('password')
-        role = request.form.get('role', 'student') # Default to student if not specified
-
-        if username in USERS:
-            flash("Username already taken.", "error")
-        else:
-            new_user = {
-                'username': username,
-                'password': password,
-                'role': role,
-                'name': name
-            }
-            USERS[username] = new_user
-            save_users() # Persist
-            flash("Account created! Please login.", "success")
+        cur = mysql.connection.cursor()
+        try:
+            if role == 'student':
+                roll = request.form.get('roll_number')
+                sem = request.form.get('semester')
+                cur.execute("INSERT INTO students VALUES (%s, %s, %s, %s)", (roll, name, password, sem))
+            else:
+                email = request.form.get('email')
+                subject = request.form.get('subject_of_teaching')
+                cur.execute("INSERT INTO teachers VALUES (%s, %s, %s, %s)", (email, name, password, subject))
+            mysql.connection.commit()
+            flash("Signup successful!", "success")
             return redirect(url_for('login'))
-
+        except Exception as e:
+            flash(f"Error: {e}", "error")
+        finally: cur.close()
     return render_template('signup.html')
-
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    flash("You have been logged out.", "info")
-    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     role = session['user']['role']
-    if role == 'admin':
-        return redirect(url_for('admin_dashboard'))
-    elif role == 'teacher':
-        return redirect(url_for('teacher_dashboard'))
-    elif role == 'student':
-        return redirect(url_for('student_dashboard'))
-    return redirect(url_for('logout'))
+    if role == 'admin': return redirect(url_for('admin_dashboard'))
+    if role == 'teacher': return redirect(url_for('teacher_dashboard'))
+    return redirect(url_for('student_dashboard'))
 
-# ------------------- ADMIN ROUTES -------------------
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('home'))
 
+# --- ADMIN ---
 @app.route('/admin')
 @login_required
 @role_required('admin')
 def admin_dashboard():
-    teacher_count = len([u for u in USERS.values() if u['role'] == 'teacher'])
-    student_count = len([u for u in USERS.values() if u['role'] == 'student'])
-    subject_count = len(SUBJECTS)
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT COUNT(*) FROM students")
+    s_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM teachers")
+    t_count = cur.fetchone()[0]
+    cur.execute("SELECT value FROM config WHERE key_name = 'results_published'")
+    pub = cur.fetchone()[0] == 'True'
     
-    all_results = []
-    for s_username, s_marks in MARKS.items():
-        stu = USERS.get(s_username)
-        if not stu: continue
+    cur.execute("SELECT s.full_name, m.subject_name, (m.internal + m.external) as total_marks FROM marks m JOIN students s ON m.roll_number = s.roll_number")
+    results = []
+    for r in cur.fetchall():
+        g, st = get_grade(r[2])
+        results.append({'student': r[0], 'subject': r[1], 'marks': r[2], 'grade': g, 'status': st})
         
-        for sub_id, score in s_marks.items():
-            sub = SUBJECTS.get(sub_id)
-            if sub:
-                grade, status = get_grade(score)
-                all_results.append({
-                    'student': stu['name'],
-                    'subject': sub['name'],
-                    'marks': score,
-                    'grade': grade,
-                    'status': status
-                })
-
-    return render_template('admin_dashboard.html', 
-                           users=USERS, 
-                           subjects=SUBJECTS,
-                           config=CONFIG,
-                           stats={'teachers': teacher_count, 'students': student_count, 'subjects': subject_count},
-                           all_results=all_results)
-
-@app.route('/admin/add_subject', methods=['POST'])
-@login_required
-@role_required('admin')
-def add_subject():
-    name = request.form.get('name')
-    teacher_username = request.form.get('teacher_id')
-    
-    if name and teacher_username:
-        new_id = str(uuid.uuid4())[:8]
-        SUBJECTS[new_id] = {
-            'id': new_id,
-            'name': name,
-            'teacher_id': teacher_username
-        }
-        save_subjects()
-        flash(f"Subject '{name}' created successfully.", "success")
-    else:
-        flash("Missing info for creating subject.", "error")
-    return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/add_user', methods=['POST'])
-@login_required
-@role_required('admin')
-def add_user():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    name = request.form.get('name')
-    role = request.form.get('role')
-    
-    if username in USERS:
-        flash("Username already exists.", "error")
-    elif username and password and role in ['student', 'teacher']:
-        USERS[username] = {
-            'username': username,
-            'password': password,
-            'role': role,
-            'name': name
-        }
-        save_users()
-        flash(f"User '{username}' created successfully.", "success")
-    else:
-        flash("Invalid user data.", "error")
-    return redirect(url_for('admin_dashboard'))
+    cur.close()
+    return render_template('admin_dashboard.html', stats={'students': s_count, 'teachers': t_count}, config={'results_published': pub}, all_results=results)
 
 @app.route('/admin/toggle_results')
 @login_required
 @role_required('admin')
 def toggle_results():
-    CONFIG['results_published'] = not CONFIG['results_published']
-    save_config()
-    status = "PUBLISHED" if CONFIG['results_published'] else "UNPUBLISHED"
-    flash(f"Results are now {status}.", "info")
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT value FROM config WHERE key_name = 'results_published'")
+    new_v = 'True' if cur.fetchone()[0] == 'False' else 'False'
+    cur.execute("UPDATE config SET value = %s WHERE key_name = 'results_published'", (new_v,))
+    mysql.connection.commit()
+    cur.close()
     return redirect(url_for('admin_dashboard'))
 
-# ------------------- TEACHER ROUTES -------------------
-
+# --- TEACHER ---
 @app.route('/teacher')
 @login_required
 @role_required('teacher')
 def teacher_dashboard():
-    my_username = session['user']['username']
-    my_subjects = [s for s in SUBJECTS.values() if s['teacher_id'] == my_username]
-    all_students = [u for u in USERS.values() if u['role'] == 'student']
+    sub = session['user']['subject']
+    cur = mysql.connection.cursor()
+    # Only fetch students who have marks in this subject (as per design spec, "Add Student" creates the entry)
+    cur.execute('''
+        SELECT s.roll_number, s.full_name, m.internal, m.external, m.remarks 
+        FROM marks m JOIN students s ON m.roll_number = s.roll_number 
+        WHERE m.subject_name = %s
+    ''', (sub,))
+    stus = []
+    for r in cur.fetchall():
+        stus.append({'id': r[0], 'roll': r[0], 'name': r[1], 'internal': r[2], 'external': r[3], 'remarks': r[4] or ''})
+    cur.close()
     
-    return render_template('teacher_dashboard.html', 
-                           subjects=my_subjects,
-                           students=all_students)
+    teacher_name = session['user']['name'] or 'Teacher'
+    tj = json.dumps({
+        'name': teacher_name,
+        'initials': ''.join([n[0] for n in teacher_name.split()][:2]).upper() if teacher_name else 'T',
+        'subject': sub,
+        'code': sub.upper()[:4] + '-101',
+        'semester': 'All Semesters',
+        'dept': 'Faculty Dept.'
+    })
+    return render_template('teacher_dashboard.html', teacher_json=tj, students_json=json.dumps(stus))
 
-@app.route('/teacher/update_marks', methods=['POST'])
+@app.route('/teacher/api/save_marks', methods=['POST'])
 @login_required
 @role_required('teacher')
-def update_marks():
-    student_username = request.form.get('student_id')
-    subject_id = request.form.get('subject_id')
-    marks_val = request.form.get('marks')
+def api_save_marks():
+    data = request.json
+    roll = data.get('roll')
+    name = data.get('name')
+    internal = data.get('internal', 0)
+    external = data.get('external', 0)
+    remarks = data.get('remarks', '')
+    sub = session['user']['subject']
     
-    subject = SUBJECTS.get(subject_id)
-    if not subject or subject['teacher_id'] != session['user']['username']:
-        flash("You are not authorized to grade this subject.", "error")
-        return redirect(url_for('teacher_dashboard'))
+    cur = mysql.connection.cursor()
+    # Check if student exists, else insert
+    cur.execute("SELECT * FROM students WHERE roll_number = %s", (roll,))
+    if not cur.fetchone():
+        cur.execute("INSERT INTO students (roll_number, full_name, password, semester) VALUES (%s, %s, %s, %s)",
+                    (roll, name, roll, 'I'))
+                    
+    cur.execute("REPLACE INTO marks (roll_number, subject_name, internal, external, remarks) VALUES (%s, %s, %s, %s, %s)", 
+                (roll, sub, internal, external, remarks))
+    mysql.connection.commit()
+    cur.close()
+    return {"status": "success"}
 
-    try:
-        val = int(marks_val)
-        if not (0 <= val <= 100): raise ValueError()
-    except:
-        flash("Marks must be a number between 0 and 100.", "error")
-        return redirect(url_for('teacher_dashboard'))
-        
-    if student_username not in USERS:
-        flash("Student not found.", "error")
-        return redirect(url_for('teacher_dashboard'))
+@app.route('/teacher/api/delete_marks', methods=['POST'])
+@login_required
+@role_required('teacher')
+def api_delete_marks():
+    roll = request.json.get('roll')
+    sub = session['user']['subject']
+    cur = mysql.connection.cursor()
+    cur.execute("DELETE FROM marks WHERE roll_number = %s AND subject_name = %s", (roll, sub))
+    mysql.connection.commit()
+    cur.close()
+    return {"status": "success"}
 
-    if student_username not in MARKS:
-        MARKS[student_username] = {}
-        
-    MARKS[student_username][subject_id] = val
-    save_marks()
-    flash(f"Updated marks for {USERS[student_username]['name']}.", "success")
-    return redirect(url_for('teacher_dashboard'))
-
-# ------------------- STUDENT ROUTES -------------------
-
+# --- STUDENT ---
 @app.route('/student')
 @login_required
 @role_required('student')
 def student_dashboard():
-    if not CONFIG['results_published']:
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT value FROM config WHERE key_name = 'results_published'")
+    if cur.fetchone()[0] == 'False': 
+        cur.close()
         return render_template('student_dashboard.html', published=False)
-        
-    username = session['user']['username']
-    student_marks = MARKS.get(username, {})
     
-    report_card = []
-    total_marks = 0
-    max_marks = 0
+    roll = session['user']['id']
+    cur.execute("SELECT subject_name, internal, external, (internal + external) as total_marks, remarks FROM marks WHERE roll_number = %s", (roll,))
+    rows = cur.fetchall()
+    report = []
+    tot, mx = 0, 0
+    for r in rows:
+        g, s = get_grade(r[3])
+        report.append({'subject': r[0], 'internal': r[1], 'external': r[2], 'score': r[3], 'remarks': r[4], 'grade': g, 'status': s})
+        tot += r[3]; mx += 100
     
-    for sub_id, score in student_marks.items():
-        subject = SUBJECTS.get(sub_id)
-        if subject:
-            grade, status = get_grade(score)
-            report_card.append({
-                'subject': subject['name'],
-                'score': score,
-                'grade': grade,
-                'status': status
-            })
-            total_marks += score
-            max_marks += 100
-            
-    percentage = 0
-    if max_marks > 0:
-        percentage = round((total_marks / max_marks) * 100, 2)
-        
-    final_grade, final_status = get_grade(percentage)
-    
-    return render_template('student_dashboard.html', 
-                           published=True,
-                           report_card=report_card,
-                           total_marks=total_marks,
-                           max_marks=max_marks,
-                           percentage=percentage,
-                           final_grade=final_grade,
-                           final_status=final_status)
-
-@app.route('/student/download')
-@login_required
-@role_required('student')
-def download_result():
-    return student_dashboard()
+    perc = round((tot/mx)*100, 2) if mx > 0 else 0
+    fg, fs = get_grade(perc)
+    cur.close()
+    return render_template('student_dashboard.html', published=True, report_card=report, total_marks=tot, max_marks=mx, percentage=perc, final_grade=fg, final_status=fs)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

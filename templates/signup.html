@@ -1,45 +1,100 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="login-container">
+<div style="max-width: 480px; margin: 4rem auto;" class="fade-in">
     <div class="card">
-        <div class="card-header" style="text-align: center;">
-            <h2 class="card-title">Create Account</h2>
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">✨</div>
+            <h2 class="card-title">Join EduGrade</h2>
+            <p style="color: var(--text-2); font-size: 0.9rem;">Select your role to get started</p>
+        </div>
+
+        <!-- Role Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchSignupTab('student', this)">Student</div>
+            <div class="tab" onclick="switchSignupTab('teacher', this)">Teacher</div>
         </div>
 
         <form action="{{ url_for('signup') }}" method="POST">
+            <input type="hidden" id="role-input" name="role" value="student">
+
             <div class="form-group">
-                <label for="name">Full Name</label>
-                <input type="text" id="name" name="name" placeholder="John Doe" required>
+                <label id="name-label">Full Name</label>
+                <input type="text" name="name" placeholder="Enter full name" required>
+            </div>
+
+            <!-- Student Fields -->
+            <div id="student-fields">
+                <div class="form-group">
+                    <label>Roll Number</label>
+                    <input type="text" name="roll_number" placeholder="e.g. 101" required>
+                </div>
+                <div class="form-group">
+                    <label>Semester</label>
+                    <select name="semester">
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                        <option value="6">Semester 6</option>
+                        <option value="7">Semester 7</option>
+                        <option value="8">Semester 8</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Teacher Fields (Hidden by default) -->
+            <div id="teacher-fields" style="display: none;">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Subject of Teaching</label>
+                    <input type="text" name="subject_of_teaching" placeholder="e.g. Physics">
+                </div>
             </div>
 
             <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Create secure password" required>
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Create a password" required>
-            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; margin-top: 1rem;">
+                Create Free Account
+            </button>
 
-            <div class="form-group">
-                <label for="role">I am a...</label>
-                <select name="role" id="role" required>
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                </select>
-                <small style="color: var(--text-muted); display: block; margin-top: 5px;">
-                    Note: Admin accounts can only be created by existing admins.
-                </small>
-            </div>
-
-            <button type="submit" class="btn" style="width: 100%;">Sign Up</button>
-            <div style="text-align: center; margin-top: 1rem;">
-                <a href="{{ url_for('login') }}" style="color: var(--accent-color); font-size: 0.9rem;">Already have an
-                    account? Login</a>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <p style="font-size: 0.85rem; color: var(--text-3);">
+                    Already have an account? 
+                    <a href="{{ url_for('login') }}" style="color: var(--accent); font-weight: 600; text-decoration: none;">Sign in here</a>
+                </p>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    function switchSignupTab(role, tabElement) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tabElement.classList.add('active');
+        document.getElementById('role-input').value = role;
+
+        const studentFields = document.getElementById('student-fields');
+        const teacherFields = document.getElementById('teacher-fields');
+        
+        if (role === 'student') {
+            studentFields.style.display = 'block';
+            teacherFields.style.display = 'none';
+            studentFields.querySelectorAll('input, select').forEach(i => i.required = true);
+            teacherFields.querySelectorAll('input').forEach(i => i.required = false);
+        } else {
+            studentFields.style.display = 'none';
+            teacherFields.style.display = 'block';
+            studentFields.querySelectorAll('input, select').forEach(i => i.required = false);
+            teacherFields.querySelectorAll('input').forEach(i => i.required = true);
+        }
+    }
+</script>
 {% endblock %}
