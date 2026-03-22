@@ -11,7 +11,7 @@ app.secret_key = 'super_secret_dev_key_change_me_in_prod'
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'your_mysql_pasword_here'  # Replace with your MySQL root password
+app.config['MYSQL_PASSWORD'] = 'om@2005'  # Replace with your MySQL root password
 app.config['MYSQL_DB'] = 'result_management_system'
 
 mysql = MySQL(app)
